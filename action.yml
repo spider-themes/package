@@ -1,5 +1,5 @@
-name: Package
-description: Build, zip, and deploy a WordPress plugin or theme to Google Drive (branches) or GitHub Releases (tags).
+name: Package WordPress Plugin
+description: Build, zip, and deploy a WordPress plugin to Google Drive (branches) or GitHub Releases (tags).
 
 inputs:
   slug:
@@ -11,7 +11,7 @@ inputs:
   node_version:
     description: "Node.js version"
     required: false
-    default: "18"
+    default: "24"
   php_version:
     description: "PHP version"
     required: false
