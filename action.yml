@@ -35,6 +35,7 @@ runs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ inputs.php_version }}
+        tools: wp-cli
 
     - name: NPM Build
       shell: bash
@@ -56,6 +57,17 @@ runs:
         else
           echo "No composer.json found, skipping"
         fi
+
+    - name: Generate Localization (.pot)
+      shell: bash
+      run: |
+        echo "Generating translation files for ${{ inputs.slug }}..."
+        mkdir -p languages
+        
+        wp i18n make-pot . languages/${{ inputs.slug }}.pot \
+          --slug="${{ inputs.slug }}" \
+          --domain="${{ inputs.slug }}" \
+          --exclude="node_modules,vendor,.github,tests"
 
     - name: Define Variables
       shell: bash
@@ -87,6 +99,10 @@ runs:
             echo "Skipping optional file: $file"
           fi
         done
+        
+        if [ -d "languages" ]; then
+          cp -r languages "$DIR_NAME/"
+        fi
 
     - name: Create ZIP
       shell: bash
