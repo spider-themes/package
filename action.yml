@@ -25,6 +25,23 @@ inputs:
   svn_password:
     description: "WordPress.org SVN password (pass via org secret)"
     required: false
+  vps_host:
+    description: "VPS hostname or IP for changelog upload (pass via org secret)"
+    required: false
+  vps_user:
+    description: "VPS SSH username (pass via org secret)"
+    required: false
+  vps_ssh_key:
+    description: "VPS SSH private key (pass via org secret)"
+    required: false
+  vps_port:
+    description: "VPS SSH port (pass via org secret)"
+    required: false
+    default: "22"
+  changelogs_path:
+    description: "Destination path on VPS for changelogs"
+    required: false
+    default: "~/public_html/global-changelogs/"
 
 runs:
   using: composite
@@ -177,3 +194,34 @@ runs:
         ASSETS_DIR: ./svn/assets
       with:
         generate-zip: false
+
+    - name: Upload Changelog to VPS
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: bash
+      env:
+        VPS_HOST: ${{ inputs.vps_host }}
+        VPS_PORT: ${{ inputs.vps_port }}
+        VPS_USER: ${{ inputs.vps_user }}
+        VPS_SSH_KEY: ${{ inputs.vps_ssh_key }}
+        CHANGELOGS_PATH: ${{ inputs.changelogs_path }}
+      run: |
+        if [ -z "$VPS_HOST" ] || [ -z "$VPS_USER" ] || [ -z "$VPS_SSH_KEY" ]; then
+          echo "VPS credentials not configured, skipping changelog upload"
+          exit 0
+        fi
+
+        if [ ! -f changelog.txt ]; then
+          echo "changelog.txt not found, skipping VPS upload"
+          exit 0
+        fi
+
+        mkdir -p ~/.ssh
+        echo "$VPS_SSH_KEY" > ~/.ssh/vps_key
+        chmod 600 ~/.ssh/vps_key
+        ssh-keyscan -H -p "$VPS_PORT" "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+        scp -i ~/.ssh/vps_key -P "$VPS_PORT" -o StrictHostKeyChecking=no \
+          changelog.txt \
+          "$VPS_USER@$VPS_HOST:$CHANGELOGS_PATH/$SLUG-changelog.txt"
+
+        echo "Uploaded changelog as \`$SLUG-changelog.txt\` to \`$VPS_HOST:$CHANGELOGS_PATH\`" >> $GITHUB_STEP_SUMMARY
