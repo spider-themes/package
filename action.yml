@@ -178,10 +178,27 @@ runs:
         fi
 
     - name: Create GitHub Release
+      id: release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         files: ${{ env.ZIP_FILE }}
+
+    - name: Release Summary
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: bash
+      run: |
+        DOWNLOAD_LINK="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$ZIP_FILE"
+
+        echo "## Release Published!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Download Plugin ZIP" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**File:** \`$ZIP_FILE\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "[Download ZIP]($DOWNLOAD_LINK)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "[View Release](${{ steps.release.outputs.url }})" >> $GITHUB_STEP_SUMMARY
 
     - name: Deploy to WordPress.org SVN
       if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') && inputs.svn_username != ''
